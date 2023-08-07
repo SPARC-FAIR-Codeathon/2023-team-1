@@ -1,0 +1,3 @@
+[submodule "open-physiology-viewer-clone"]
+	path = open-physiology-viewer-clone
+	url = https://github.com/open-physiology/open-physiology-viewer.git
