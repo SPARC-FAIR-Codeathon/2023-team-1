@@ -4,3 +4,6 @@
 [submodule "apinatomy-converter"]
 	path = apinatomy-converter
 	url = https://github.com/open-physiology/apinatomy-converter.git
+[submodule "apinatomy-local-converter"]
+	path = apinatomy-local-converter
+	url = https://github.com/ddelpiano/converter.git
