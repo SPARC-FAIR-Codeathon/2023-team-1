@@ -32,3 +32,5 @@ The tool require a neo4j server, in charge of ingesting the ttl and output a gra
 - once done run the neuron_generator.py script
 
 Note, the first time that the server is ran there are some extra settings to be performed in order for the tool to work properly (init neo4j graph and set constraint), the user will be prompted for such question, if the answer is not correct the tool might not work properly.
+
+A version of the converter tool which includes information about species and sex for the converter neurons, is included in the species_and_sex folder of this repository. 
