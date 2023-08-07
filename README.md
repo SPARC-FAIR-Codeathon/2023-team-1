@@ -34,3 +34,16 @@ The tool require a neo4j server, in charge of ingesting the ttl and output a gra
 Note, the first time that the server is ran there are some extra settings to be performed in order for the tool to work properly (init neo4j graph and set constraint), the user will be prompted for such question, if the answer is not correct the tool might not work properly.
 
 A version of the converter tool which includes information about species and sex for the converter neurons, is included in the species_and_sex folder of this repository. 
+
+### Creating a model.
+
+- In order to create a model, you first need to extract data from SPARC using the apinatomy-converter.
+- To create a spreadsheet with models go to :
+  ''' cd sparc_converter '''
+- Run :
+  ''' python neuron_generator.py model_name"
+  Where model_name is 'mmset4', 'mmset3', 'prostate', 'semves' or 'mmset1', or other sparc model.
+- Go to 
+  ''' cd data/ '''
+  And look for a spreasheet with same model name.
+- You can use our deployment 'apinatomy.dev.metacell.us' and test the model by loading it. 
