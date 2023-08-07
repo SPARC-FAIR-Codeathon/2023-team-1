@@ -1,3 +1,5 @@
+from email.mime import base
+from xml.parsers.expat import model
 import pandas as pd
 import os
 import gspread
@@ -6,7 +8,7 @@ import rdflib_neo4j
 from neo4j import GraphDatabase
 import json
 import numpy as np
-
+import sys
 
 # Create a spreadsheet ApiNATOMY model
 def create_local_excel(df_chains, df_groups, df_lyphs, df_links, file_path):
@@ -222,7 +224,7 @@ def extract_housing_lyphs():
 LYPH_COLUMNS = ['id', 'name', 'supertype']
 LINK_COLUMNS = ['id', 'name', 'conveyingLyph', 'source', "target"]
 CHAIN_COLUMNS = ['id', 'name', 'housingLyphs', 'lyphs', 'levels']
-GROUP_COLUMNS = ['id', 'name', 'lyphs', "links", "nodes", "description", "hasBiologicalSex"]
+GROUP_COLUMNS = ['id', 'name', 'lyphs', "links", "nodes", "description"]
 
 df_lyphs = pd.DataFrame([], columns=LYPH_COLUMNS)
 df_links = pd.DataFrame([], columns=LINK_COLUMNS)
@@ -243,198 +245,189 @@ with driver.session() as session:
     res = session.run(cql_neurons)
     neurons = [record for record in res.data()]
     file_ext = ""
-    neurons_size = 25
-    neurons_length = 0
+    model_name = sys.argv[1]
+    neurons_dict = {}
     for neuron in neurons:
         uri = neuron['n']['uri']
         baseID = uri.replace("http://uri.interlex.org/tgbugs/uris/readable/sparc-nlp/", "")
-        baseName = neuron['n']['label'][:50] # Too long names get into group names and do not fit the Setting Panel
-        # To create only one neuron
-        # if uri != "http://uri.interlex.org/tgbugs/uris/readable/sparc-nlp/mmset4/2":
-        #     continue
-        # else:
-        #     file_ext = "_" + baseID.replace("/", "_")
-        print("Neuron:", uri)
+        if model_name in baseID and baseID not in neurons_dict:
+            baseName = neuron['n']['label'][:50] # Too long names get into group names and do not fit the Setting Panel
+            # To create only one neuron
+            # if uri != "http://uri.interlex.org/tgbugs/uris/readable/sparc-nlp/mmset4/2":
+            #     continue
+            # else:
+            #     file_ext = "_" + baseID.replace("/", "_")
+            print("Neuron:", uri)
+            print(baseID)   
+            neurons_dict[baseID] = baseID
 
-        # extract chains of housing lyphs
-        res = session.run(cql_partial_order, uri=uri)
-        entries = [record for record in res.data()]
-        chains = []
-        extract_housing_lyphs()
+            # extract chains of housing lyphs
+            res = session.run(cql_partial_order, uri=uri)
+            entries = [record for record in res.data()]
+            chains = []
+            extract_housing_lyphs()
 
-        housing_ont_set = set()
-        for housingLyphs in chains:
-            for lyph in housingLyphs:
-                housing_ont_set.add(lyph)
+            housing_ont_set = set()
+            for housingLyphs in chains:
+                for lyph in housingLyphs:
+                    housing_ont_set.add(lyph)
 
-        host_to_supertypes = get_supertypes(uri, housing_ont_set)
-        # print("Supertypes: ", len(host_to_supertypes))
+            host_to_supertypes = get_supertypes(uri, housing_ont_set)
+            # print("Supertypes: ", len(host_to_supertypes))
 
-        # Generate ApiNATOMY chains and/or groups for each extracted housingLyph set
+            # Generate ApiNATOMY chains and/or groups for each extracted housingLyph set
 
-        if len(chains) > 1:
-            # Complex assembly, we will follow a set of extracted chains of housing lyphs and generate
-            # the minimal possible number of neuron segments to ensure correct ApiNATOMY chain connectivity, i.e.,
-            # each previous level should end in the same node as the current segment starts
+            if len(chains) > 1:
+                # Complex assembly, we will follow a set of extracted chains of housing lyphs and generate
+                # the minimal possible number of neuron segments to ensure correct ApiNATOMY chain connectivity, i.e.,
+                # each previous level should end in the same node as the current segment starts
 
-            # Initially create one neuron segment per unique housing lyph URI
-            host_to_links = {}
-            for i, host in enumerate(host_to_supertypes):
-                host_to_links[host] = []
-                host_to_links[host].append(
-                    {
-                        "id": baseID + "_lnk_" + str(i),
-                        "name": "Neural segment for " + host,
-                        # "conveyingLyph": gen_lyph_id
-                        "conveyingLyph": host_to_supertypes[host]
-                    }
-                )
-            # print("Unique segments: ", len(host_to_links))
-
-            idx = len(host_to_links)
-            idx_n = 1
-            for i, housing_lyphs in enumerate(chains):
-                levels = []
-                node_pairs = []
-
-                for j, host in enumerate(housing_lyphs):
-                    # neuron link before current
-                    prev = levels[j - 1] if j > 0 else None
-                    # next housing lyph
-                    following = housing_lyphs[j + 1] if j < len(housing_lyphs) - 1 else None
-                    # available links for the next housing lyph
-                    next_all = host_to_links[following] if following else []
-                    # available links for the next housing lyph that start where the previous segment ends
-                    selected = [x for x in host_to_links[host] if "source" not in x or x["source"] == prev["target"]]
-                    if len(selected) > 1:
-                        # Many options, we take the last one
-                        selected = selected[-1:]
-                    if len(selected) == 0:
-                        # No suitable links, a new link needed
-                        selected = [{
-                            "id": baseID + "_lnk_" + str(idx),
+                # Initially create one neuron segment per unique housing lyph URI
+                host_to_links = {}
+                for i, host in enumerate(host_to_supertypes):
+                    host_to_links[host] = []
+                    host_to_links[host].append(
+                        {
+                            "id": baseID + "_lnk_" + str(i),
                             "name": "Neural segment for " + host,
                             # "conveyingLyph": gen_lyph_id
-                            "conveyingLyph": host_to_supertypes[host],
-                            "source": prev["target"]
-                        }]
-                        idx += 1
-                    for curr in selected:
-                        lnk = curr
-                        if "source" in curr and "target" in curr:
-                            # We reached a housing lyph in a chain for which neural segment ends are defined,
-                            # need to check if it is suitable or reroute (create another link)
-                            match = [x for x in next_all if "source" in x and x["source"] == curr["target"]]
-                            if len(match) == 0:
-                                free = [x for x in next_all if "source" not in x]
-                                if len(free) > 1:
-                                    # There should not be links more than one link with undefined source
-                                    print("Something weird...", j)
-                                if len(free) > 0 and ("target" not in free[0] or free[0]["target"] != curr["target"]):
-                                    # If there is a free link (with undefined source and no conflict), assign its source
-                                    free[0]["source"] = curr["target"]
-                                else:
-                                    # no suitable continuation of the neuron chain
-                                    if len(next_all) > 1:
-                                        # Can several options exist for the next segment???
-                                        # We will connect the current segment to the first below
-                                        print("Several links exist for the segment...", j, host)
-                                    if len(match) == 0 and len(next_all) > 0:
-                                        source = curr["source"]
-                                        # Check that the source matches previous level
-                                        if prev and prev["target"] != source:
-                                            source = prev["target"]
-                                        if source != next_all[0]["source"]:
-                                            target = next_all[0]["source"]
-                                        else:
-                                            target = baseID + "_n" + str(idx_n)
-                                            idx_n += 1
-                                        lnk = {
-                                            "id": baseID + "_lnk_" + str(idx),
-                                            "name": "Neural segment for " + host,
-                                            # "conveyingLyph": gen_lyph_id
-                                            "conveyingLyph": host_to_supertypes[host],
-                                            "source": source,
-                                            "target": target
-                                        }
-                                        idx += 1
-                                        host_to_links[host].append(lnk)
-                        else:
-                            # Neural segment links we allocated for each housing lyph are not connected yet,
-                            # we join them following the chains of housing lyphs and assigning source and target nodes
-                            # from previous and/or next segments
-                            if "source" not in curr:
-                                if prev:
-                                    curr["source"] = prev["target"]
-                                else:
-                                    curr["source"] = baseID + "_n" + str(idx_n)
-                                    idx_n += 1
-                            if "target" not in curr:
-                                next_lnk = host_to_links[following][0] if following else None
-                                # all next hops should have the same entry point?
-                                if next_lnk and "source" in next_lnk:
-                                    curr["target"] = next_lnk["source"]
-                                else:
-                                    curr["target"] = baseID + "_n" + str(idx_n)
-                                    idx_n += 1
-                        levels.append(lnk)
-                        node_pairs.append(host + ":{" + lnk["source"] + ", " + lnk["target"] + "}")
-                    # print(j, [x for x in node_pairs])
+                            "conveyingLyph": host_to_supertypes[host]
+                        }
+                    )
+                # print("Unique segments: ", len(host_to_links))
 
-                ext = "_" + str(i+1)
-                levels_str = ','.join([x["id"] for x  in levels])
+                idx = len(host_to_links)
+                idx_n = 1
+                for i, housing_lyphs in enumerate(chains):
+                    levels = []
+                    node_pairs = []
 
-                housings = ["wbkg:" + lyphsByURIs[x]["id"] for x in housing_lyphs if x in lyphsByURIs]
-                housing_lyphs_str = ','.join(housings)
+                    for j, host in enumerate(housing_lyphs):
+                        # neuron link before current
+                        prev = levels[j - 1] if j > 0 else None
+                        # next housing lyph
+                        following = housing_lyphs[j + 1] if j < len(housing_lyphs) - 1 else None
+                        # available links for the next housing lyph
+                        next_all = host_to_links[following] if following else []
+                        # available links for the next housing lyph that start where the previous segment ends
+                        selected = [x for x in host_to_links[host] if "source" not in x or x["source"] == prev["target"]]
+                        if len(selected) > 1:
+                            # Many options, we take the last one
+                            selected = selected[-1:]
+                        if len(selected) == 0:
+                            # No suitable links, a new link needed
+                            selected = [{
+                                "id": baseID + "_lnk_" + str(idx),
+                                "name": "Neural segment for " + host,
+                                # "conveyingLyph": gen_lyph_id
+                                "conveyingLyph": host_to_supertypes[host],
+                                "source": prev["target"]
+                            }]
+                            idx += 1
+                        for curr in selected:
+                            lnk = curr
+                            if "source" in curr and "target" in curr:
+                                # We reached a housing lyph in a chain for which neural segment ends are defined,
+                                # need to check if it is suitable or reroute (create another link)
+                                match = [x for x in next_all if "source" in x and x["source"] == curr["target"]]
+                                if len(match) == 0:
+                                    free = [x for x in next_all if "source" not in x]
+                                    if len(free) > 1:
+                                        # There should not be links more than one link with undefined source
+                                        print("Something weird...", j)
+                                    if len(free) > 0 and ("target" not in free[0] or free[0]["target"] != curr["target"]):
+                                        # If there is a free link (with undefined source and no conflict), assign its source
+                                        free[0]["source"] = curr["target"]
+                                    else:
+                                        # no suitable continuation of the neuron chain
+                                        if len(next_all) > 1:
+                                            # Can several options exist for the next segment???
+                                            # We will connect the current segment to the first below
+                                            print("Several links exist for the segment...", j, host)
+                                        if len(match) == 0 and len(next_all) > 0:
+                                            source = curr["source"]
+                                            # Check that the source matches previous level
+                                            if prev and prev["target"] != source:
+                                                source = prev["target"]
+                                            if source != next_all[0]["source"]:
+                                                target = next_all[0]["source"]
+                                            else:
+                                                target = baseID + "_n" + str(idx_n)
+                                                idx_n += 1
+                                            lnk = {
+                                                "id": baseID + "_lnk_" + str(idx),
+                                                "name": "Neural segment for " + host,
+                                                # "conveyingLyph": gen_lyph_id
+                                                "conveyingLyph": host_to_supertypes[host],
+                                                "source": source,
+                                                "target": target
+                                            }
+                                            idx += 1
+                                            host_to_links[host].append(lnk)
+                            else:
+                                # Neural segment links we allocated for each housing lyph are not connected yet,
+                                # we join them following the chains of housing lyphs and assigning source and target nodes
+                                # from previous and/or next segments
+                                if "source" not in curr:
+                                    if prev:
+                                        curr["source"] = prev["target"]
+                                    else:
+                                        curr["source"] = baseID + "_n" + str(idx_n)
+                                        idx_n += 1
+                                if "target" not in curr:
+                                    next_lnk = host_to_links[following][0] if following else None
+                                    # all next hops should have the same entry point?
+                                    if next_lnk and "source" in next_lnk:
+                                        curr["target"] = next_lnk["source"]
+                                    else:
+                                        curr["target"] = baseID + "_n" + str(idx_n)
+                                        idx_n += 1
+                            levels.append(lnk)
+                            node_pairs.append(host + ":{" + lnk["source"] + ", " + lnk["target"] + "}")
+                        # print(j, [x for x in node_pairs])
 
-                # for j, np in enumerate(node_pairs):
-                #     print(j, np)
-                # print()
+                    ext = "_" + str(i+1)
+                    levels_str = ','.join([x["id"] for x  in levels])
 
-                df_chains.loc[len(df_chains.index)] = [baseID+ext, baseName+ext, housing_lyphs_str, "", levels_str]
+                    housings = ["wbkg:" + lyphsByURIs[x]["id"] for x in housing_lyphs if x in lyphsByURIs]
+                    housing_lyphs_str = ','.join(housings)
 
-            # Collect link and node sets for a joint assembly group
-            lnk_set = set()
-            node_set = set()
+                    # for j, np in enumerate(node_pairs):
+                    #     print(j, np)
+                    # print()
 
-            for host in host_to_links:
-                for lnk in host_to_links[host]:
-                    df_links.loc[len(df_links.index)] = lnk.values()
-                    lnk_set.add(lnk["id"])
-                    node_set.add(lnk["source"])
-                    node_set.add(lnk["target"])
-            lnk_set_str = ",".join(["nlp:" + x for x in lnk_set])
-            node_set_str = ','.join(set(["nlp:" + x for x in node_set]))
+                    df_chains.loc[len(df_chains.index)] = [baseID+ext, baseName+ext, housing_lyphs_str, "", levels_str]
 
-            description = ""
-            sex = "male"
-            if "female" in neuron['n']['genLabel'] :
+                # Collect link and node sets for a joint assembly group
+                lnk_set = set()
+                node_set = set()
+
+                for host in host_to_links:
+                    for lnk in host_to_links[host]:
+                        df_links.loc[len(df_links.index)] = lnk.values()
+                        lnk_set.add(lnk["id"])
+                        node_set.add(lnk["source"])
+                        node_set.add(lnk["target"])
+                lnk_set_str = ",".join(["nlp:" + x for x in lnk_set])
+                node_set_str = ','.join(set(["nlp:" + x for x in node_set]))
+
                 description = "dynamic"
-                sex = "female"
-            # Create neuron group
+                # Create neuron group
+                df_groups.loc[len(df_groups.index)] = ["g_neuron_"+baseID, "Group "+baseID, "", lnk_set_str, node_set_str, description]
+                neurons_dict[baseID] = baseID
+            else:
+                # Single chain, ApiNATAOMY chain is defined by lyphs and housingLyphs
+                lyphs = []
+                for i, host in enumerate(chains[0]):
+                    # To generate lyph instances instead of abstract lyphs
+                    gen_lyph_id = baseID + "_lyph_" + str(i)
+                    lyphs.append(gen_lyph_id)
+                    df_lyphs.loc[len(df_lyphs.index)] = [gen_lyph_id, "Neural segment for " + host, host_to_supertypes[host]]
 
-            df_groups.loc[len(df_groups.index)] = ["g_neuron_"+baseID, "Group "+baseID, "", lnk_set_str, node_set_str, description,sex]
-            neurons_length = neurons_length + 1
-            if neurons_length >= neurons_size :
-                break
-        else:
-            # Single chain, ApiNATAOMY chain is defined by lyphs and housingLyphs
-            lyphs = []
-            for i, host in enumerate(chains[0]):
-                # To generate lyph instances instead of abstract lyphs
-                gen_lyph_id = baseID + "_lyph_" + str(i)
-                lyphs.append(gen_lyph_id)
-                df_lyphs.loc[len(df_lyphs.index)] = [gen_lyph_id, "Neural segment for " + host, host_to_supertypes[host]]
-
-            lyphs_str = ','.join(lyphs)
-            housing_lyphs_str = ','.join(["wbkg:"+lyphsByURIs[x]["id"] for x in chains[0] if x in lyphsByURIs])
-            df_chains.loc[len(df_chains.index)] = [baseID, baseName, housing_lyphs_str, lyphs_str, ""]
-        
-        # Housing group - useless until open-physiology-viewer handles group extensions from other namespace resources
-        # housing_lyphs_set_str = ",".join(["wbkg:"+lyphsByURIs[x]["id"] for x in housing_ont_set if x in lyphsByURIs])
-        # df_groups.loc[len(df_groups.index)] = ["g_" + baseID, "Housing group " + baseID, housing_lyphs_set_str, "", ""]
-
+                lyphs_str = ','.join(lyphs)
+                housing_lyphs_str = ','.join(["wbkg:"+lyphsByURIs[x]["id"] for x in chains[0] if x in lyphsByURIs])
+                df_chains.loc[len(df_chains.index)] = [baseID, baseName, housing_lyphs_str, lyphs_str, ""]
 driver.close()
 
 print('./data/neurons' + file_ext + '.xlsx')
-create_local_excel(df_chains, df_groups, df_lyphs, df_links, './data/neurons' + file_ext + '.xlsx')
+create_local_excel(df_chains, df_groups, df_lyphs, df_links, './data/' + model_name.replace("/","-") + '.xlsx')
