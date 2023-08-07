@@ -1,3 +1,9 @@
 [submodule "open-physiology-viewer-clone"]
 	path = open-physiology-viewer-clone
 	url = https://github.com/open-physiology/open-physiology-viewer.git
+[submodule "apinatomy-converter"]
+	path = apinatomy-converter
+	url = https://github.com/open-physiology/apinatomy-converter.git
+[submodule "apinatomy-local-converter"]
+	path = apinatomy-local-converter
+	url = https://github.com/ddelpiano/converter.git
