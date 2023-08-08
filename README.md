@@ -47,6 +47,8 @@ A version of the converter tool which extracts information from the turtle file 
 - Go to 
   ''' cd data/ '''
   And look for a spreasheet with same model name.
+- Upload your spreadsheet model somewhere, here on github under data folder for example. Then you can use the URL where the model spreasheet was uploaded and pass it to as a query parameter to our deployment : [apinatomy.dev.metacell.us/?demoUrl=URL](apinatomy.dev.metacell.us).
+  For example, we host our models on github by committing them to our repository. Then we use the raw Link address for the models and load them in apinatomy viewer. [https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx](https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx)
 - You can use our deployment [apinatomy.dev.metacell.us](apinatomy.dev.metacell.us) and test the model by loading it. 
 - To load it, launch [apinatomy.dev.metacell.us](apinatomy.dev.metacell.us) and click on the 'Load Model' icon. It's located on the left side bar, second from the top, and looks like a folder icon.
 - From the File System, select the newly created model spreadsheet.
