@@ -36,7 +36,7 @@ Note, the first time that the server is run there are some extra settings the us
 
 A version of the converter tool which extracts information from the turtle file concerning the species and sex of each SCKAN model is included in the species_and_sex folder of this repository.  This is intended to be utilized in the future (when the NIFSTD database has sufficiently grown) for comparing and contrasting the neuronal networks of different species or to analyze sexual dymorphisms.  The same approach can be used to make other comparisons, such as looking at differences in how a particular nerve passes through the left vs. right hemisphere of the body.
 
-### Loading a model.
+## Creating a model.
 
 - In order to view a SCKAN model in ApiNATOMY, you first need to extract data from the SCKAN NIFSTD using the apinatomy-converter (see above).
 - To create a spreadsheet with models go to :
@@ -47,8 +47,12 @@ A version of the converter tool which extracts information from the turtle file 
 - Go to 
   ''' cd data/ '''
   And look for a spreasheet with same model name.
-- Upload your spreadsheet model somewhere, here on github under data folder for example. Then you can use the URL where the model spreasheet was uploaded and pass it to as a query parameter to our deployment : [apinatomy.dev.metacell.us/?demoUrl=URL](apinatomy.dev.metacell.us).
-  For example, we host our models on github by committing them to our repository. Then we use the raw Link address for the models and load them in apinatomy viewer. [https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx](https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx)
+
+## Loading your model 
+
+- Upload your spreadsheet model somewhere, here on github under data folder for example. Then you can use the URL where the model spreasheet was uploaded and pass it to as a query parameter to our deployment : [apinatomy.dev.metacell.us/?demoUrl=YOUR_URL](apinatomy.dev.metacell.us).
+
+  For example, we host our models on github by committing them to our repository. Then we use the link address for the raw data of the models and load them in apinatomy viewer. [https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx](https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx)
 - You can use our deployment [https://apinatomy.dev.metacell.us](https://apinatomy.dev.metacell.us) and test the model by loading it. 
 - To load it, launch [https://apinatomy.dev.metacell.us](https://apinatomy.dev.metacell.us) and click on the 'Load Model' icon. It's located on the left side bar, second from the top, and looks like a folder icon.
 - From the File System, select the newly created model spreadsheet.
