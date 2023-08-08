@@ -64,4 +64,4 @@ To create a direct link to share a specific model already loaded in the Open Phy
 
   For example, we host our models on github by committing them to our repository. Then we use the link address for the raw data of the models and load them in apinatomy viewer. [https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx](https://apinatomy.dev.metacell.us/?demoUrl=https://raw.githubusercontent.com/open-physiology/open-physiology-viewer/feature/83_toggle/test/data/prostate.xlsx)
 
-This will be especially useful in the future for automatically creating links to load up SCKAN models in the Open Physiology Viewer for easy access.  It's currently the ideal way to share a link for other researchers to a model of interest.
+This will be especially useful in the future for automatically creating links to load up SCKAN models in the Open Physiology Viewer for easy access.  It's currently the ideal way to share a link for other researchers to explore a model of interest.
