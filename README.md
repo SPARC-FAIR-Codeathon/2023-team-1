@@ -46,4 +46,10 @@ A version of the converter tool which includes information about species and sex
 - Go to 
   ''' cd data/ '''
   And look for a spreasheet with same model name.
-- You can use our deployment 'apinatomy.dev.metacell.us' and test the model by loading it. 
+- You can use our deployment [apinatomy.dev.metacell.us](apinatomy.dev.metacell.us) and test the model by loading it. 
+- To load it, launch [apinatomy.dev.metacell.us](apinatomy.dev.metacell.us) and click on the 'Load Model' icon. It's located on the left side bar, second from the right, looks like a folder icon.
+- From File System, select the new created model spreasheet.
+- Wait while it loads. 
+- Toggle Settings panel on if not present, it's the Gears icon on the right sidebar.
+- Go to Dynamic Groups, and click 'Enable Neuroview'
+- Select of of the Dynamic groups at a time to visualize
